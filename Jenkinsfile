@@ -1,3 +1,3 @@
 #!/bin/bash
 
-ansible-playbook wordpress.yml
+ansible-playbook -i hosts wordpress.yml
