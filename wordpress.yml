@@ -1,0 +1,88 @@
+---
+- hosts: webserver
+  become: yes
+  gather_facts: no
+  vars:
+   mysql_root_password: asdf123@123
+   wordpress_user: user_word
+   wordpress_password: qwerasdf@123!
+   wordpress_db: userdb
+
+  tasks:
+
+  #######################################################################
+  ## Installing LampStack and php-mysql bindings
+  #######################################################################
+  - name: "Install Lamstack with php-mysql bindings"
+    yum: name="{{ item }}" state=present
+    with_items:
+     - httpd
+     - mariadb-server
+     - php
+     - php-mysql
+     - MySQL-python
+
+  - name: "Restart Webserver and mariadb"
+    service: name="{{ item }}" state=restarted
+    with_items:
+     - httpd
+     - mariadb
+
+
+  #######################################################################
+  ## Creating MySQL user and database for wordpress
+  #######################################################################
+  - name: "Remove anon users"
+    mysql_user: login_user=root login_password='' name='' host_all=yes state=absent
+  - name: "Creating wordpress database"
+    mysql_db: name="{{wordpress_db}}" state=present
+  - name: "creating wordpress user and set password"
+    mysql_user: name="{{wordpress_user}}" host=localhost password="{{wordpress_password}}" priv="{{wordpress_db}}.*:ALL"
+  - name: "Reset mysql root password"
+    mysql_user: name=root host_all=yes password="{{mysql_root_password}}" 
+
+
+  #######################################################################
+  ## Downloading wordpress latest version and extracting
+  #######################################################################
+  - name: "Downloading wordpress files"
+    get_url: url=http://www.wordpress.org/latest.tar.gz dest=/tmp/wordpress.tar.gz
+  - name: "Extract wordpress file"
+    unarchive: src=/tmp/wordpress.tar.gz dest=/tmp/ remote_src=yes
+  - name: "copying wordpress contents"
+    shell: "cp -r /tmp/wordpress/* /var/www/html/"
+  - name: "copy wordpress wp-config.php file"
+    copy: src=/var/www/html/wp-config-sample.php dest=/var/www/html/wp-config.php remote_src=yes
+
+
+  #######################################################################
+  ## Wordpress configuration
+  #######################################################################
+  - name: "setting permissions for wordpress files"
+    shell: "chown -R apache:apache /var/www/html/"
+  - name: "configure wordpress"
+    lineinfile: dest=/var/www/html/wp-config.php regexp="{{ item.regexp }}" line="{{ item.line }}"
+    with_items:
+     - {'regexp': "define\\('DB_NAME', '(.)+'\\);", 'line': "define('DB_NAME', '{{wordpress_db}}');"}
+     - {'regexp': "define\\('DB_USER', '(.)+'\\);", 'line': "define('DB_USER', '{{wordpress_user}}');"}
+     - {'regexp': "define\\('DB_PASSWORD', '(.)+'\\);", 'line': "define('DB_PASSWORD', '{{wordpress_password}}');"}
+
+
+  #######################################################################
+  ## removing extracted directory and tar file
+  #######################################################################
+  - name: "Remove wordpress tar file and extracted file"
+    file: path="{{ item }}" state=absent
+    with_items:
+     - /tmp/wordpress
+     - /tmp/wordpress.tar.gz
+
+
+  #######################################################################
+  ## Final Service Restart
+  ########################################################################
+  - name: "Final Lamrestart"
+    service: name="{{ item }}" state=restarted
+    with_items:
+     - httpd
+     - mariadb
