@@ -1,3 +1,3 @@
 #!/bin/bash
 
-ansible-playbook -i hosts wordpress.yml <<EOF
+sh 'deploy_prod.sh'
