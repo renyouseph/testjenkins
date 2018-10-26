@@ -1,5 +1,5 @@
 #!/bin/sh
 
-ansible-playbook -i hosts  wordpress.yml <<EOF
+ansible-playbook wordpress.yml <<EOF
 
 EOF
