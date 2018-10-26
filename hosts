@@ -1,2 +1,2 @@
 [webserver]
-ec2_public_ip  ansible_port=22  ansible_user='root'
+54.172.117.253 ansible_port=22  ansible_user='root'
