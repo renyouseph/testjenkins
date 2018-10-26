@@ -1,2 +1,2 @@
 [webserver]
-54.172.117.253 ansible_port=22  ansible_user='jenkins'
+54.172.117.253 ansible_port=22  ansible_user='ec2-user'
